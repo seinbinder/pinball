@@ -4,6 +4,12 @@
 //      ??? WHY ARE MY COLLISIONS ADDING ENERGY? (e.g. watch 1 ball with a bit of gravity)
 //          added some 'friction' to collisions. 
 //          this is a table, not air. So add instead to every position update, lessening velocity slightly 
+//  still double counting any collisions?
+//  Timing, FPS
+//  NEXT UP: Add A Flipper
+//      rectangle-to-ball collision (non axis-aligned)
+//      draw and rotate the flipper
+//      user input (see hangout from joel)
 var object = [];
 canvW = 300;
 canvH = 400;
@@ -288,16 +294,20 @@ function canvasGameLoop() {
         pinballCanvas.clear();
 
         for (var obj1 of object) {
-            obj1.position();
-            
-            // Collision checks 
-            detectWall(obj1);
-            for (var obj2 of object){
-                // skip self
-                if(obj1 != obj2 && halt === 0){
-                    if (detectCollision(obj1, obj2) ===1) {
-                        resolveCollision(obj1, obj2);
-                        // halt = 1;   
+            // no point checking fixed objects vs other objects, but we do have to draw them
+            if(obj1.subType != 'fixed') {
+                obj1.position();
+                
+                // Collision checks 
+                detectWall(obj1);
+                for (var obj2 of object){
+                    // skip self
+                    if(obj1 != obj2 && halt === 0){
+                        if (detectCollision(obj1, obj2) ===1) {
+                            // console.log('collide ', obj1, obj2);
+                            resolveCollision(obj1, obj2);
+                            // halt = 1;   
+                        }
                     }
                 }
             }

@@ -10,7 +10,8 @@
 //      rectangle-to-ball collision (non axis-aligned)
 //      draw and rotate the flipper
 //      user input (see hangout from joel)
-var object = [];
+
+var object = [];    // array of objects on the play field
 canvW = 300;
 canvH = 400;
 var canvCtx;
@@ -32,7 +33,7 @@ function startPinball() {
     object[i].velX = -.1
     object[i].velY = 0.05;
 
-    i=object.push();  // .p0100000;
+    i=object.push();  // .push returns current length of an array. with an argument, it pushes the arg, then returns length.
 
     // wallThickness = 10;
     // object.push( new wallStatic(0, canvH-wallThickness, canvW, wallThickness, "lightblue") );   // x, y, width, height, color
@@ -42,13 +43,16 @@ function startPinball() {
 
     var perRow = 5;
     var rows = 8;
-    // var 
+    
     for(i=0; i<rows*perRow; i++) {
         var j=object.push( new Ball((canvW/perRow*(i+.5)%canvW), canvH/rows*(Math.floor(i/perRow)+.5), 4,"darkgrey") ); // x, y, radius, color
         object[j-1].subType = 'fixed';
     }
+
+    i = object.push( new Flipper(canvW*0.3, canvH*0.1, canvW*0.4, canvH*0.2, 'black'));
 }
 function f2(x) {
+    // for console.log 2 decimal places. What's the right way to format console output?  
     var numb = Math.floor(x * 100);
     return numb/10000;
 }
@@ -64,6 +68,27 @@ var pinballCanvas = {
     },
     clear: function() {
         this.context.clearRect(0,0, this.canvas.width, this.canvas.height);
+    }
+}
+class Flipper {
+    constructor(x1, y1, x2, y2, color) {
+        this.type = 'flipper'; //CHEATING till collision is ready
+        this.x1 = x1; 
+        this.y1 = y1;
+        this.x2 = x2; 
+        this.y2 = y2;
+        this.mass = 1;     // creator can overwrite this. (could make it an arg)
+        this.color = color;
+    }
+    position() {
+        // TBD
+    }
+    draw() {
+        canvCtx.strokeStyle = this.color; 
+        canvCtx.beginPath();
+        canvCtx.moveTo(this.x1, this.y1);
+        canvCtx.lineTo(this.x2, this.y2);
+        canvCtx.stroke();
     }
 }
 class Ball {                                // convention: classes start w/ Capital
@@ -272,7 +297,7 @@ function detectCollision(obj1, obj2) {
     }
 
     // if obj1 & obj2 are both circles
-    if(1) {
+    if(obj1.type === 'ball' && obj2.type === 'ball') {
         
         var deltaX, deltaY, radiSum;
         deltaX = obj1.x - obj2.x;
@@ -287,6 +312,28 @@ function detectCollision(obj1, obj2) {
             // collision
             return 1;
         }
+    }
+
+    if(obj1.type === 'ball' && obj2.type === 'flipper') {
+        // see notebook 8/8/2020 for the math and diagram, and trigonometry.xlsx for math mockup
+        var a0, a1, hyp, alpha, opp;
+        // determine alpha (angle between the endpoint-of-line and center of ball)
+        a0 = Math.atan2(obj2.y2 - obj2.y1, obj2.x2 - obj2.x1);
+        a1 = Math.atan2(obj1.x - obj2.x1, obj1.y - obj2.y1);
+        alpha = Math.abs( Math.PI/2 - (a0 + a1));
+
+        // determine hypotenuse (distance from endpoint-of-line to center of ball)
+        hyp = Math.sqrt( (obj1.x - obj2.x1) * (obj1.x - obj2.x1) + (obj1.y - obj2.y1)*(obj1.y - obj2.y1));
+
+        // determine Opposite (distance from ball to the line at 90 degrees)
+        opp = Math.sin(alpha) * hyp;
+
+        if (opp < obj1.radius) {
+            console.log('FLIPPER COLLISION')
+            // halt = 1;
+        }
+
+
     }
 }
 function canvasGameLoop() {

@@ -15,7 +15,6 @@ var object = [];    // array of objects on the play field
 canvW = 300;
 canvH = 400;
 var canvCtx;
-var halt = 0;
 FPS = 120;
 MPF = 1000/FPS; //millisec per frame 
 friction = .9;
@@ -41,15 +40,15 @@ function startPinball() {
     // object.push( new wallStatic(0, wallThickness, wallThickness, canvH-2*wallThickness, "lightblue") );
     // object.push( new wallStatic(canvW-wallThickness, wallThickness, wallThickness, canvH-2*wallThickness, "lightblue") ); 
 
-    var perRow = 5;
-    var rows = 8;
+    var perRow = 2;
+    var rows = 4;
     
     for(i=0; i<rows*perRow; i++) {
         var j=object.push( new Ball((canvW/perRow*(i+.5)%canvW), canvH/rows*(Math.floor(i/perRow)+.5), 4,"darkgrey") ); // x, y, radius, color
         object[j-1].subType = 'fixed';
     }
 
-    i = object.push( new Flipper(canvW*0.3, canvH*0.1, canvW*0.4, canvH*0.2, 'black'));
+    i = object.push( new Flipper(100, 100, 150, 150, 'black'));
 }
 function f2(x) {
     // for console.log 2 decimal places. What's the right way to format console output?  
@@ -316,49 +315,61 @@ function detectCollision(obj1, obj2) {
 
     if(obj1.type === 'ball' && obj2.type === 'flipper') {
         // see notebook 8/8/2020 for the math and diagram, and trigonometry.xlsx for math mockup
-        var a0, a1, hyp, alpha, opp;
+        var a0, a1, hyp, alpha, opp, adj, pNx, pNy;
         // determine alpha (angle between the endpoint-of-line and center of ball)
         a0 = Math.atan2(obj2.y2 - obj2.y1, obj2.x2 - obj2.x1);
         a1 = Math.atan2(obj1.x - obj2.x1, obj1.y - obj2.y1);
-        alpha = Math.abs( Math.PI/2 - (a0 + a1));
+        alpha = Math.abs(a0 - a1);
+
+        // var a0Deg = a0 * (180/Math.PI);
+        // var a1Deg = a1 * (180/Math.PI);
+        // var alphaDeg = alpha * (180/Math.PI);
 
         // determine hypotenuse (distance from endpoint-of-line to center of ball)
         hyp = Math.sqrt( (obj1.x - obj2.x1) * (obj1.x - obj2.x1) + (obj1.y - obj2.y1)*(obj1.y - obj2.y1));
 
         // determine Opposite (distance from ball to the line at 90 degrees)
         opp = Math.sin(alpha) * hyp;
+        adj = Math.cos(alpha) * hyp;
+
+        // adj becomes hypotenuse of a0 to the x axis. use this to determine pNx,pNy where the shortest distance intersects the line
+        pNx = obj2.x1 + Math.cos(a0) * adj;
+        pNy = obj2.y1 + Math.sin(a0) * adj;
+
+        // Two collision conditions to check for:
+        //  - if point where Ball-to-line shortest path falls within the line, and that path length < radius
+        //  - if ball close to either line endpoint
 
         if (opp < obj1.radius) {
+            if ( ( (obj2.x2 > obj2.x1) && (pNx >= obj2.x1) && (pNx <= obj2.x2) )  || ( obj2.x2 < obj2.x1 && pNx >= obj2.x2 && pNx <= obj2.x1 )  ){
             console.log('FLIPPER COLLISION')
-            // halt = 1;
+            }
         }
 
 
     }
 }
 function canvasGameLoop() {
-    if (halt === 0) {
-        pinballCanvas.clear();
+    
+    // pinballCanvas.clear();
 
-        for (var obj1 of object) {
-            // no point checking fixed objects vs other objects, but we do have to draw them
-            if(obj1.subType != 'fixed') {
-                obj1.position();
-                
-                // Collision checks 
-                detectWall(obj1);
-                for (var obj2 of object){
-                    // skip self
-                    if(obj1 != obj2 && halt === 0){
-                        if (detectCollision(obj1, obj2) ===1) {
-                            // console.log('collide ', obj1, obj2);
-                            resolveCollision(obj1, obj2);
-                            // halt = 1;   
-                        }
+    for (var obj1 of object) {
+        // no point checking fixed objects vs other objects, but we do have to draw them
+        if(obj1.subType != 'fixed') {
+            obj1.position();
+            
+            // Collision checks 
+            detectWall(obj1);
+            for (var obj2 of object){
+                // skip self
+                if(obj1 != obj2) {
+                    if (detectCollision(obj1, obj2) ===1) {
+                        // console.log('collide ', obj1, obj2);
+                        resolveCollision(obj1, obj2);
                     }
                 }
             }
-            obj1.draw();
         }
+        obj1.draw();
     }
 }
